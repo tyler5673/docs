@@ -69,18 +69,18 @@ import { createDeepAgent } from "deepagents";
 
 // Using Anthropic
 const agent = createDeepAgent({
-    model: new ChatAnthropic({
-        model: "claude-sonnet-4-20250514",
-        temperature: 0,
-    }),
+  model: new ChatAnthropic({
+    model: "claude-sonnet-4-20250514",
+    temperature: 0,
+  }),
 });
 
 // Using OpenAI
 const agent2 = createDeepAgent({
-    model: new ChatOpenAI({
-        model: "gpt-5",
-        temperature: 0,
-    }),
+  model: new ChatOpenAI({
+    model: "gpt-5",
+    temperature: 0,
+  }),
 });
 ```
 
