@@ -1017,6 +1017,14 @@
                         "langsmith/troubleshooting-variable-caching",
                         "langsmith/collector-proxy"
                       ]
+                    },
+                    {
+                      "group": "API versioning",
+                      "pages": [
+                        "langsmith/api-v1-v2-overview",
+                        "langsmith/endpoint-deprecation",
+                        "langsmith/endpoint-migration"
+                      ]
                     }
                   ]
                 },

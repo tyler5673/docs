@@ -1,0 +1,98 @@
+---
+title: API v1 and v2 overview
+sidebarTitle: API v1 vs v2 overview
+description: Understand the behavior and key differences between the runs endpoint API v1 and v2 namespaces.
+---
+
+This page summarizes how the two versions differ in serving, routing, and rollout. For version and sunset policy, see [API versioning and support policy](/langsmith/endpoint-deprecation). For step-by-step upgrade steps, see [Migrate API versions (runs endpoint)](/langsmith/endpoint-migration).
+
+The LangSmith runs API provides two namespaces:
+
+- **API v1:** The `/api/v1` namespace includes the existing runs endpoints (ingest, query, multipart, etc.).
+- **API v2:** The `/v2` namespace includes the runs endpoints that use the new design.
+
+## Key differences between the v1 and v2 namespace
+
+| Operation | API v1 | API v2 |
+|--|--------|--------|
+| **Create run** | JSON or multipart: `POST /api/v1/runs`, `/runs/batch`, `/runs/multipart` | Multipart only: `POST /v2/runs/multipart` with parts `post.{run_id}` / `patch.{run_id}` |
+| **Update run** | `PATCH /api/v1/runs/{run_id}` (JSON) | No PATCH. Use `POST /v2/runs/multipart` with part `patch.{run_id}` |
+| **Get run** | `GET /api/v1/runs/{run_id}`; query params optional | `GET /v2/runs/{run_id}`; `session_id` and `start_time` required |
+| **Query runs** | `POST /api/v1/runs/query`; body `start_time`, `end_time` | `POST /v2/runs/query`; body `min_start_time`, `max_start_time` |
+| **Get trace runs** | `GET /api/v1/traces/{trace_id}/runs`; query params optional | `GET /v2/traces/{trace_id}/runs`; `session_id`, `min_start_time`, `max_start_time` required |
+| **Delete runs** | `POST /api/v1/runs/delete`; body metadata or session_id + trace_ids | `POST /v2/runs/delete`; body session_id + trace_ids only (no metadata) |
+| **Create run response** | `{"message": "Runs batch ingested"}` | `{"success": true}` |
+| **Pagination** | `cursors.next` and `cursors.prev` | Only `cursors.next` |
+| **Select / fields** | Names like `extra`, `error` | `extra`→`metadata`, `error`→`error_preview`; some options removed in v2 |
+
+## v1 to v2 endpoint mapping
+
+Use this table to find the v2 equivalent for each v1 operation and the main migration steps. For full request/response details and code examples, see the [migration guide](/langsmith/endpoint-migration).
+
+| Operation | v1 | v2 | Migrate to v2 |
+| --------- | -- | -- | -------------- |
+| **Create run (single)** | `POST /api/v1/runs` (JSON body) | `POST /v2/runs/multipart` | Use multipart with one part: `post.{run_id}`, value = run JSON (same shape as v1). Response changes from `{"message": "Runs batch ingested"}` to `{"success": true}`. |
+| **Create runs (batch)** | `POST /api/v1/runs/batch` (JSON `post`/`patch` arrays) | `POST /v2/runs/multipart` | One multipart part per run: `post.{run_id}` or `patch.{run_id}` with run JSON. No batch JSON body. Response `{"success": true}`. |
+| **Create/update (multipart)** | `POST /api/v1/runs/multipart` | `POST /v2/runs/multipart` | Change path only; part names unchanged (`post.{run_id}`, `patch.{run_id}`, `.inputs`, `.outputs`, etc.). Response `{"success": true}`; part-level `Content-Encoding` header is not allowed in v2 (use body-level or Content-Type param). |
+| **Update run (single)** | `PATCH /api/v1/runs/{run_id}` (JSON body) | `POST /v2/runs/multipart` | No PATCH in v2. Use multipart with one part: `patch.{run_id}`, value = update JSON (same fields as v1 PATCH). Method and URL change; run_id is in the part name, not the path. |
+| **Get run** | `GET /api/v1/runs/{run_id}` (optional query params) | `GET /v2/runs/{run_id}` | Add **required** query params: `session_id`, `start_time`. Map v1 exclude/include to v2 `select` (allowlist). `session_id` and `start_time` required in v2; response field renames (e.g. `extra`→`metadata`, `error`→`error_preview` when using select). |
+| **Query runs** | `POST /api/v1/runs/query` | `POST /v2/runs/query` | Rename body: `start_time`→`min_start_time`, `end_time`→`max_start_time`. Keep `session` (required). No `cursors.prev` in v2; cursor format is predicate-style; `select`/`order` UPPERCASE; `trace_min_max_start_time` and `feedback_stats` not supported. |
+| **Get trace runs** | `GET /api/v1/traces/{trace_id}/runs` | `GET /v2/traces/{trace_id}/runs` | Add **required** query params: `session_id`, `min_start_time`, `max_start_time`. Same select/response renames as query runs. |
+| **Delete runs** | `POST /api/v1/runs/delete` (metadata or session_id + trace_ids) | `POST /v2/runs/delete` | Send only `session_id` and `trace_ids` in body. Metadata-based delete is not supported in v2; resolve to (session_id, trace_ids) via a query if needed. |
+
+
+## SDK versions that support API v2
+
+Only certain SDK versions support the runs API in the `/v2` namespace. Use a v2-capable version to call v2 endpoints; older versions use v1 only.
+
+| SDK | Minimum version for v2 |
+| --- | ---------------------- |
+| **Python** | TBD |
+| **TypeScript/JavaScript** | TBD |
+
+If you're using an older SDK version, upgrade to at least the version listed above to use v2 endpoints. See the [migration guide](/langsmith/endpoint-migration) for request/response changes when moving from v1 to v2.
+
+
+## List Pagination
+
+List-style responses (for example, from `POST /runs/query`) use cursors for pagination. v1 and v2 differ in how cursors are returned, how they are formatted, and what request options are available.
+
+### Response cursors
+
+**V1** — Returns both `next` and `prev` in the response: `cursors: { "next": string | null, "prev": string | null }`.
+
+**V2** — Returns only `next`: `cursors: { "next": string }` (no `prev` in the response).
+
+When migrating from v1 to v2, remove any reliance on `cursors.prev` for backward pagination.
+
+### Cursor format
+
+**V1** — Cursor used with tuple comparison or concatenation, backend binds as `cursor__gt` / `cursor__lt`.
+
+**V2** — Single string, predicate form `lt(cursor, '{start_time}{id}')`, `start_time` as `%Y-%m-%d %H:%M:%S%.6f`.
+
+Do not assume v1 cursor format when calling v2 or when persisting v2 cursors.
+
+## Changes to UUIDs
+
+This section explains how run, trace, and session identifiers work in v1 and v2 and what to adjust when migrating.
+
+Run, trace, and session IDs are valid UUIDs in both v1 and v2. The main change is required query params for read endpoints:
+
+**v1** — GET run and GET trace runs accept optional query params (`session_id`, `start_time`, or time range). You can fetch a run with only the run ID.
+
+**v2** — Those params are required: `GET /v2/runs/{run_id}` needs `session_id` and `start_time`, `GET /v2/traces/{trace_id}/runs` needs `session_id`, `min_start_time`, and `max_start_time`.
+
+**UUIDv7 vs other UUIDs** — UUIDv7 encodes a timestamp in its first 48 bits, so `start_time` can be derived from the run ID. UUIDv4 and other non–time-ordered UUIDs do not encode a timestamp; for those, `start_time` must come from somewhere else when calling v2.
+
+If you generate run IDs: Prefer UUIDv7 for new runs. You can then derive `start_time` from the run ID and call v2 GET run with only the run ID and `session_id`, with no extra lookup. UUIDv7 also dramatically improves performance when querying runs.
+
+## Deprecation and sunset
+
+v1 runs endpoints are explicitly deprecated. Sunset middleware adds `Sunset` and `Link` headers and maps v1 run paths to their v2 equivalents. For the full endpoint mapping and migration steps, see [Migrate API versions (runs endpoint)](/langsmith/endpoint-migration).
+
+## See also
+
+- [API versioning and support policy](/langsmith/endpoint-deprecation) — Versioning, deprecation, and sunset
+- [Migrate API versions (runs endpoint)](/langsmith/endpoint-migration) — Step-by-step v1 to v2 migration
+- [Trace with API](/langsmith/trace-with-api) — Using the runs API for tracing
