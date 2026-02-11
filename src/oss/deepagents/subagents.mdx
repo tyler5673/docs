@@ -612,18 +612,12 @@ result = await agent.invoke(
 :::js
 ```typescript
 import { createDeepAgent } from "deepagents";
-import { tool, type ToolRuntime } from "langchain";
+import { tool } from "langchain";
 import { z } from "zod";
 
-const contextSchema = z.object({
-  userId: z.string(),
-  sessionId: z.string(),
-});
-type ContextSchema = z.infer<typeof contextSchema>;
-
 const getUserData = tool(
-  (input, config: ToolRuntime<typeof contextSchema>) => {
-    const userId = config.context.userId;
+  (input, config) => {
+    const userId = config.context?.userId;
     return `Data for user ${userId}: ${input.query}`;
   },
   {
@@ -639,6 +633,11 @@ const researchSubagent = {
   systemPrompt: "You are a research assistant.",
   tools: [getUserData],
 };
+
+const contextSchema = z.object({
+  userId: z.string(),
+  sessionId: z.string(),
+});
 
 const agent = createDeepAgent({
   model: "claude-sonnet-4-5-20250929",
