@@ -1,0 +1,22 @@
+:::python
+```python
+from deepagents.backends import LocalShellBackend
+
+agent = create_deep_agent(
+    backend=LocalShellBackend(root_dir=".", env={"PATH": "/usr/bin:/bin"})
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent } from "deepagents";
+
+// Implement LocalShellSandbox by extending BaseSandbox with execute(), uploadFiles(),
+// and downloadFiles(). See: https://github.com/langchain-ai/deepagentsjs/blob/main/examples/sandbox/local-sandbox.ts
+const sandbox = new LocalShellSandbox({ workingDirectory: "." });
+const agent = createDeepAgent({
+  backend: sandbox,
+});
+```
+:::
