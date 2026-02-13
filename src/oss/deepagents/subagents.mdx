@@ -68,11 +68,12 @@ For most use cases, define subagents as dictionaries:
 **Optional fields:**
 
 <ParamField body="model" type="str | BaseChatModel">
+    <Badge color="blue" size="sm">Inherited from main agent</Badge> Specify a model to override the main agent's model.
     :::python
-    Override the main agent's model. You can pass either a model identifier string like `'openai:gpt-5'` (using the `'provider:model'` format) or a LangChain chat model object (`init_chat_model("gpt-5")` or `ChatOpenAI(model="gpt-5")`).
+    You can pass either a model identifier string like `'openai:gpt-5'` (using the `'provider:model'` format) or a LangChain chat model object (`init_chat_model("gpt-5")` or `ChatOpenAI(model="gpt-5")`).
     :::
     :::js
-    Override the main agent's model. You can pass either a model identifier string like `'openai:gpt-5'` (using the `'provider:model'` format) or a LangChain chat model object (`await initChatModel("gpt-5")` or `new ChatOpenAI({ model: "gpt-5" })`).
+    You can pass either a model identifier string like `'openai:gpt-5'` (using the `'provider:model'` format) or a LangChain chat model object (`await initChatModel("gpt-5")` or `new ChatOpenAI({ model: "gpt-5" })`).
     :::
 </ParamField>
 
@@ -81,7 +82,7 @@ For most use cases, define subagents as dictionaries:
 </ParamField>
 
 <ParamField body="interrupt_on" type="dict[str, bool]">
-    Configure human-in-the-loop for specific tools. Requires a checkpointer.
+    <Badge color="blue" size="sm">Inherited from main agent</Badge>. Configure [human-in-the-loop](/oss/deepagents/human-in-the-loop) for specific tools. Subagent value overrides. Requires a checkpointer.
 </ParamField>
 
 <ParamField body="skills" type="list[str]">
@@ -92,6 +93,22 @@ For most use cases, define subagents as dictionaries:
 
     When a subagent has skills, it runs its own independent `SkillsMiddleware` instance. Skill state is fully isolated — a subagent's loaded skills are not visible to the parent, and vice versa.
 </ParamField>
+
+#### SubAgent configuration reference
+
+The following table summarizes SubAgent fields and how they relate to the main agent. The general-purpose subagent always inherits system prompt, tools, model, and skills from the main agent. Custom subagents do not inherit unless specified.
+
+| Field | Required | Inherits from main agent | Description |
+|-------|----------|--------------------------|-------------|
+| `name` | Yes | — | Unique identifier. Main agent uses this when calling the `task()` tool. |
+| `description` | Yes | — | What this subagent does. Main agent uses this to decide when to delegate. |
+| `system_prompt` | Yes | No | Instructions for the subagent. Custom subagents must define their own. |
+| `tools` | Yes | No | Tools the subagent can use. Custom subagents specify their own. |
+| `model` | No | Yes (default) | Override the main agent's model. Omit to use the main agent's model. |
+| `middleware` | No | No | Additional middleware for custom behavior, logging, or rate limiting. |
+| `interrupt_on` | No | Yes (default) | Configure [human-in-the-loop](/oss/deepagents/human-in-the-loop) for specific tools. Subagent value overrides main agent. Requires checkpointer. |
+| `skills` | No | No | [Skills](/oss/deepagents/skills) source paths. Custom subagents do not inherit; specify explicitly. General-purpose subagent inherits when skills are configured on the main agent. |
+
 
 ### CompiledSubAgent
 
