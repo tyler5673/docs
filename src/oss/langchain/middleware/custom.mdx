@@ -234,6 +234,100 @@ const createRetryMiddleware = (maxRetries: number = 3) => {
 
 :::
 
+:::python
+
+## State updates from wrap_model_call
+
+You can return an @[`ExtendedModelResponse`] from  @[`@wrap_model_call`] to inject additional state updates alongside the model response.
+This enables middleware to update state from the model call layer.
+
+Use this when you need to track or update state based on logic that runs during the model call, such as summarization trigger points, usage metadata, or custom fields calculated from the request or response.
+
+### ExtendedModelResponse
+
+Return `ExtendedModelResponse` from `wrap_model_call` when you need to apply state updates:
+
+```python
+from typing import Callable
+from langchain.agents.middleware import (
+    wrap_model_call,
+    ModelRequest,
+    ModelResponse,
+    AgentState,
+    ExtendedModelResponse
+)
+from langgraph.types import Command
+from typing_extensions import NotRequired
+
+class UsageTrackingState(AgentState):
+    """Agent state with token usage tracking."""
+
+    last_model_call_tokens: NotRequired[int]
+
+
+@wrap_model_call(state_schema=UsageTrackingState)
+def track_usage(
+    request: ModelRequest,
+    handler: Callable[[ModelRequest], ModelResponse | ExtendedModelResponse],
+) -> ExtendedModelResponse:
+    response = handler(request)
+    return ExtendedModelResponse(
+        model_response=response,
+        command=Command(update={"last_model_call_tokens": 150}),
+    )
+```
+
+The @[`Command`] flows through the graph's reducers, so updates are applied correctly and messages are additive rather than replacing existing state.
+
+### Composition with multiple middleware
+
+When multiple middleware layers return `ExtendedModelResponse`, their commands compose:
+
+- **Inner commands propagate outward:** Outer middleware always receives a plain `ModelResponse` from `handler()`. `ExtendedModelResponse` is unwrapped at composition boundaries.
+- **Commands are applied through reducers:** Each `Command` becomes a separate state update. For messages, this means they are additive.
+- **Outer wins on conflicts:** For non-reducer state fields, commands are applied inner-first, then outer. The outermost middleware's value takes precedence on conflicting keys.
+- **Retry-safe:** When outer middleware retries by calling `handler()` again, accumulated inner commands are cleared and re-collected.
+
+```python
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    ExtendedModelResponse,
+    ModelRequest,
+    ModelResponse,
+)
+from langgraph.types import Command
+from typing import Callable
+
+
+class OuterMiddleware(AgentMiddleware):
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse | ExtendedModelResponse],
+    ) -> ExtendedModelResponse:
+        response = handler(request)  # sees ModelResponse, not ExtendedModelResponse
+        return ExtendedModelResponse(
+            model_response=response,
+            command=Command(update={"outer_key": "val"}),
+        )
+
+
+class InnerMiddleware(AgentMiddleware):
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse | ExtendedModelResponse],
+    ) -> ExtendedModelResponse:
+        response = handler(request)
+        return ExtendedModelResponse(
+            model_response=response,
+            command=Command(update={"inner_key": "val"}),
+        )
+
+# Final state merges both commands: {"inner_key": "val", "outer_key": "val"}
+```
+:::
+
 ## Create middleware
 
 :::python
