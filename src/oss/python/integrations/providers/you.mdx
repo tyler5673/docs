@@ -5,18 +5,56 @@ description: "Integrate with You using LangChain Python."
 
 >[You](https://you.com/about) company provides an AI productivity platform.
 
+## Installation and setup
+
+You need a You.com API key. Get one at [you.com/platform](https://you.com/platform).
+
+Set your API key as an environment variable:
+
+```python
+import os
+
+os.environ["YDC_API_KEY"] = "<your-api-key>"
+```
+
+Install `langchain-community`:
+
+```bash
+pip install -qU langchain-community
+```
+
 ## Retriever
 
 See a [usage example](/oss/integrations/retrievers/you-retriever).
 
 ```python
-from langchain_community.retrievers.you import YouRetriever
+from langchain_community.retrievers import YouRetriever
 ```
 
 ## Tools
 
 See a [usage example](/oss/integrations/tools/you).
 
+### YouSearchTool
+
+Lets agents run web searches via the You.com Search API.
+
 ```python
 from langchain_community.tools.you import YouSearchTool
+```
+
+### YouContentsTool
+
+Lets agents extract page content from URLs via the You.com Contents API.
+
+```python
+from langchain_community.tools.you import YouContentsTool
+```
+
+## Utility
+
+The underlying wrapper that powers both the retriever and tools.
+
+```python
+from langchain_community.utilities import YouSearchAPIWrapper
 ```
