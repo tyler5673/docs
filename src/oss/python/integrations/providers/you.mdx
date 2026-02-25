@@ -3,14 +3,22 @@ title: "You integrations"
 description: "Integrate with You using LangChain Python."
 ---
 
->[You](https://you.com/about) company provides an AI productivity platform.
+>[You.com](https://you.com) is an AI productivity platform offering powerful search and content APIs for grounding LLMs in accurate, real-time web information.
+
+## Standalone package
+
+The `langchain-youdotcom` package is the recommended standalone integration.
+
+```bash
+pip install -U langchain-youdotcom
+```
 
 ## Retriever
 
 See a [usage example](/oss/integrations/retrievers/you-retriever).
 
 ```python
-from langchain_community.retrievers.you import YouRetriever
+from langchain_youdotcom import YouRetriever
 ```
 
 ## Tools
@@ -18,5 +26,14 @@ from langchain_community.retrievers.you import YouRetriever
 See a [usage example](/oss/integrations/tools/you).
 
 ```python
+from langchain_youdotcom import YouSearchTool, YouContentsTool
+```
+
+## Community package
+
+You.com is also available via `langchain-community`:
+
+```python
+from langchain_community.retrievers import YouRetriever
 from langchain_community.tools.you import YouSearchTool
 ```
