@@ -31,7 +31,7 @@ os.environ["LANGSMITH_TRACING"] = "true"
 
 ## Utility usage
 
-`YouSearchAPIWrapper` provides direct access to the You.com search and contents APIs and powers the retriever and tools under the hood.
+`YouSearchAPIWrapper` provides direct access to the You.com search, contents, and research APIs and powers the retriever and tools under the hood.
 
 ```python
 from langchain_youdotcom import YouSearchAPIWrapper
@@ -68,6 +68,26 @@ print(pages[0].page_content[:500])
 print(pages[0].metadata["url"])
 ```
 
+### Research API
+
+Get comprehensive, research-grade answers with cited sources:
+
+```python
+# formatted markdown answer with sources
+text = wrapper.research_text("compare RAG vs fine-tuning for domain adaptation")
+print(text)
+
+# raw SDK response for programmatic access
+response = wrapper.raw_research("compare RAG vs fine-tuning for domain adaptation")
+print(response.output.content)
+```
+
+Control depth with `research_effort`:
+
+```python
+wrapper = YouSearchAPIWrapper(research_effort="deep")  # lite, standard, deep, exhaustive
+```
+
 ### Async
 
 Async variants are available for all methods:
@@ -77,6 +97,7 @@ import asyncio
 
 docs = asyncio.run(wrapper.results_async("What is LangChain?"))
 pages = asyncio.run(wrapper.contents_async(["https://example.com"]))
+text = asyncio.run(wrapper.research_text_async("explain quantum error correction"))
 ```
 
 ## Retriever usage
